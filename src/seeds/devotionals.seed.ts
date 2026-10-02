@@ -1,0 +1,223 @@
+export const devotionalsSeed = [
+  {
+    day: 1,
+    title: 'Empezar de nuevo',
+    verse: '"Sus misericordias son nuevas cada mañana."',
+    text: 'No importa cómo cerraste el día de ayer: hoy hay una página en blanco frente a ti. Dios no te pide que arrastres el peso de ayer para vivir hoy.',
+    prayer:
+      'Señor, gracias por la oportunidad de empezar de nuevo. Ayúdame a soltar lo que ya pasó.',
+  },
+  {
+    day: 2,
+    title: 'La calma en medio del ruido',
+    verse: '"Estad quietos, y conoced que yo soy Dios."',
+    text: 'A veces la respuesta no es hacer más, sino detenerte. Dios trabaja también en tu quietud, no solo en tu esfuerzo.',
+    prayer:
+      'Ayúdame a encontrar quietud hoy, incluso en medio de mis responsabilidades.',
+  },
+  {
+    day: 3,
+    title: 'Suficiente por hoy',
+    verse: '"Basta a cada día su propio afán."',
+    text: 'No tienes que resolver el mes completo hoy. Solo el paso de hoy. Eso ya es suficiente.',
+    prayer:
+      'Dame la gracia para vivir un día a la vez, confiando en tu cuidado para mañana.',
+  },
+  {
+    day: 4,
+    title: 'Confianza en la tormenta',
+    verse: '"Aunque ande en valle de sombra, no temeré."',
+    text: 'Las tormentas no duran para siempre, pero lo que construyes en ellas sí. Dios está contigo en el valle.',
+    prayer:
+      'Señor, dame paz en medio de la tormenta. Confío en que tú me guías.',
+  },
+  {
+    day: 5,
+    title: 'El poder de la gratitud',
+    verse: '"Dad gracias en todo."',
+    text: 'La gratitud no cambia lo que tienes, sino cómo lo ves. Cuando agradeces, abres espacio para que Dios siga obrando.',
+    prayer:
+      'Hoy elijo agradecer, incluso lo que no entiendo. Gracias por todo, Señor.',
+  },
+  {
+    day: 6,
+    title: 'No caminas solo',
+    verse: '"El Señor es mi pastor; nada me faltará."',
+    text: 'No necesitas tener todas las respuestas porque el que las tiene ya camina contigo. Confía en la guía de Dios.',
+    prayer:
+      'Señor, guía mis pasos hoy. Confío en tu plan aunque no lo vea completo.',
+  },
+  {
+    day: 7,
+    title: 'Descansar en Dios',
+    verse: '"Venid a mí todos los que estáis cansados."',
+    text: 'El descanso no es debilidad, es obediencia. Dios te invita a soltar la carga y descansar en Él.',
+    prayer:
+      'Señor, recibo tu descanso hoy. Suelto mis preocupaciones en tus manos.',
+  },
+  {
+    day: 8,
+    title: 'Fortaleza renovada',
+    verse: '"Los que esperan a Jehová tendrán nuevas fuerzas."',
+    text: 'Cada mañana es una oportunidad para recibir fuerzas nuevas. No dependes de lo que tienes, sino de quien te da todo.',
+    prayer: 'Dios mío, renueva mis fuerzas hoy. Que mi energía venga de ti.',
+  },
+  {
+    day: 9,
+    title: 'Perdonar y seguir',
+    verse: '"Perdonad, y seréis perdonados."',
+    text: 'El perdón no excusa lo que te hicieron, te libera a ti. Suelta la carga del rencor y camina ligero.',
+    prayer: 'Señor, dame la fuerza para perdonar. Libérame de esta carga.',
+  },
+  {
+    day: 10,
+    title: 'Tu propósito importa',
+    verse: '"Te formé en el vientre de tu madre."',
+    text: 'No estás aquí por accidente. Dios tiene un plan para tu vida, y ese plan comenzó antes de que nacieras.',
+    prayer:
+      'Señor, muéstrame tu propósito para mi vida. Quiero caminar en tu voluntad.',
+  },
+  {
+    day: 11,
+    title: 'Orar sin cesar',
+    verse: '"Orad sin cesar."',
+    text: 'La oración no es solo pedir: es conversar con Dios. Cada momento del día puede ser un momento de oración.',
+    prayer: 'Ayúdame a mantener mi mente en ti durante todo el día, Señor.',
+  },
+  {
+    day: 12,
+    title: 'La paz que sobrepasa',
+    verse: '"La paz de Dios guardará vuestros corazones."',
+    text: 'La paz de Dios no depende de las circunstancias. Es una paz que protege tu corazón y tu mente.',
+    prayer:
+      'Recibo tu paz hoy, Señor. Que guarde mi corazón y mis pensamientos.',
+  },
+  {
+    day: 13,
+    title: 'Dar antes de recibir',
+    verse: '"Dad, y se os dará."',
+    text: 'Cuando das, abres espacio para recibir. La generosidad no empobrece, enriquece.',
+    prayer: 'Señor, hazme generoso. Que mi vida sea una bendición para otros.',
+  },
+  {
+    day: 14,
+    title: 'Confiar en el tiempo de Dios',
+    verse: '"Todo tiene su tiempo."',
+    text: 'No estás tarde a nada. El tiempo de Dios es perfecto, aunque no coincida con el tuyo.',
+    prayer: 'Señor, enseñame a esperar. Confío en tu tiempo perfecto.',
+  },
+  {
+    day: 15,
+    title: 'La fuerza de la debilidad',
+    verse: '"Mi gracia basta para ti."',
+    text: 'En tu debilidad, la fuerza de Dios se perfecciona. No necesitas ser fuerte por ti mismo.',
+    prayer: 'Señor, en mi debilidad muéstrate fuerte. Confío en tu gracia.',
+  },
+  {
+    day: 16,
+    title: 'Agradecer en la prueba',
+    verse: '"Contadlo todo por gozo."',
+    text: 'Las pruebas producen fortaleza. Cuando agradeces en medio de ellas, las transformas.',
+    prayer: 'Dios mío, ayúdame a ver el propósito en medio de la prueba.',
+  },
+  {
+    day: 17,
+    title: 'Caminar por fe',
+    verse: '"Por fe andamos, no por vista."',
+    text: 'No necesitas ver el camino completo para dar el primer paso. Dios ilumina tu paso, no toda la carretera.',
+    prayer: 'Señor, dame fe para dar el siguiente paso.',
+  },
+  {
+    day: 18,
+    title: 'El amor que sana',
+    verse: '"El amor cubre multitud de pecados."',
+    text: 'El amor de Dios no mira tus errores: mira tu potencial. Recibe ese amor y déjalo fluir.',
+    prayer:
+      'Señor, llena mi corazón de tu amor. Que lo que reciba lo comparta.',
+  },
+  {
+    day: 19,
+    title: 'Hoy es un regalo',
+    verse: '"Encontrarán gracia ante mis ojos."',
+    text: 'Cada día es una nueva oportunidad. No lo desperdicies mirando atrás.',
+    prayer: 'Gracias por este día, Señor. Ayúdame a vivirlo plenamente.',
+  },
+  {
+    day: 20,
+    title: 'La palabra que sana',
+    verse: '"Tu palabra es lámpara a mis pies."',
+    text: 'La Biblia no es solo un libro: es guía, consuelo y dirección para tu vida diaria.',
+    prayer: 'Señor, ilumina mi camino con tu palabra. Que sea mi guía hoy.',
+  },
+  {
+    day: 21,
+    title: 'Soltar el control',
+    verse: '"Confía en Jehová con todo tu corazón."',
+    text: 'No necesitas controlarlo todo. Dios tiene el plan perfecto, incluso cuando no lo entiendes.',
+    prayer: 'Señor, te entrego el control de mi vida. Confío en ti.',
+  },
+  {
+    day: 22,
+    title: 'La alegría del Señor',
+    verse: '"La alegría del Señor es vuestra fortaleza."',
+    text: 'La alegría no depende de lo que tengas, sino de quien tienes. Dios es tu fortaleza.',
+    prayer: 'Llena mi corazón de alegría hoy, Señor. Que sea mi fortaleza.',
+  },
+  {
+    day: 23,
+    title: 'Un corazón agradecido',
+    verse: '"Alegraos siempre."',
+    text: 'La gratitud es una decisión, no una emoción. Cuando decides agradecer, todo cambia.',
+    prayer: 'Señor, ayúdame a ser agradecido en todo momento.',
+  },
+  {
+    day: 24,
+    title: 'Dios provee',
+    verse: '"Mi Dios suplirá todo lo que os falta."',
+    text: 'No cargues la ansiedad de la provisión. Dios sabe lo que necesitas antes de que lo pidas.',
+    prayer: 'Señor, confío en tu provisión. Tú sabes lo que necesito.',
+  },
+  {
+    day: 25,
+    title: 'Vivir con propósito',
+    verse: '"El que comenzó la buena obra la perfeccionará."',
+    text: 'Dios comenzó algo bueno en ti. Confía en que lo completará.',
+    prayer: 'Señor, completa la obra que comenzaste en mí.',
+  },
+  {
+    day: 26,
+    title: 'La fuerza de la comunidad',
+    verse: '"Donde dos o tres están reunidos, allí estoy yo."',
+    text: 'No fuiste hecho para caminar solo. La comunidad fortalece tu fe.',
+    prayer: 'Señor, gracias por la comunidad. Ayúdame a ser parte de ella.',
+  },
+  {
+    day: 27,
+    title: 'Perseverar',
+    verse: '"El que persevere hasta el fin será salvo."',
+    text: 'No te rindas. Lo que hoy parece difícil, mañana será tu testimonio.',
+    prayer: 'Señor, dame perseverancia para seguir adelante.',
+  },
+  {
+    day: 28,
+    title: 'La luz en la oscuridad',
+    verse: '"La luz resplandece en las tinieblas."',
+    text: 'En los momentos más oscuros, Dios es tu luz. No permitas que la oscuridad te defina.',
+    prayer: 'Señor, sé mi luz en medio de la oscuridad.',
+  },
+  {
+    day: 29,
+    title: 'Renovar la mente',
+    verse:
+      '"Sed transformados por medio de la renovación de vuestro entendimiento."',
+    text: 'Tu mente se renueva con la Palabra de Dios. Llénala de verdad, no de miedos.',
+    prayer: 'Señor, renueva mi mente. Que mis pensamientos sean根据 tu verdad.',
+  },
+  {
+    day: 30,
+    title: 'Avanzar con fe',
+    verse: '"Esfuércate y sé valiente."',
+    text: 'Dios no te pide que no tengas miedo: te pide que avances a pesar de él. Él va contigo.',
+    prayer: 'Señor, dame valentía para avanzar. Sé que tú vas conmigo.',
+  },
+];
