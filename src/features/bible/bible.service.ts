@@ -1,5 +1,8 @@
-import { Injectable, Logger } from '@nestjs/common';
+import { Injectable, Logger, Optional } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
+import { InjectRepository } from '@nestjs/typeorm';
+import { Repository } from 'typeorm';
+import { UserHighlight } from '../streaks/domain/user-highlight.entity';
 
 export interface BibleVersion {
   id: string;
@@ -28,18 +31,6 @@ export interface BibleChapter {
 
 const BIBLE_VERSIONS: BibleVersion[] = [
   {
-    id: 'NIV',
-    name: 'New International Version',
-    abbreviation: 'NIV',
-    language: 'en',
-  },
-  {
-    id: 'ESV',
-    name: 'English Standard Version',
-    abbreviation: 'ESV',
-    language: 'en',
-  },
-  {
     id: 'KJV',
     name: 'King James Version',
     abbreviation: 'KJV',
@@ -49,12 +40,6 @@ const BIBLE_VERSIONS: BibleVersion[] = [
     id: 'RVR1960',
     name: 'Reina-Valera 1960',
     abbreviation: 'RVR1960',
-    language: 'es',
-  },
-  {
-    id: 'NVI',
-    name: 'Nueva Versión Internacional',
-    abbreviation: 'NVI',
     language: 'es',
   },
 ];
@@ -221,7 +206,73 @@ export class BibleService {
   private readonly cache = new Map<string, { data: any; expiry: number }>();
   private readonly CACHE_TTL = 30 * 24 * 60 * 60 * 1000; // 30 days
 
-  constructor(private config: ConfigService) {}
+  constructor(
+    private config: ConfigService,
+    @Optional()
+    @InjectRepository(UserHighlight)
+    private readonly highlightRepo?: Repository<UserHighlight>,
+  ) {}
+
+  async getHighlights(userId: string): Promise<UserHighlight[]> {
+    if (!this.highlightRepo) return [];
+    return this.highlightRepo.find({
+      where: { userId },
+      order: { createdAt: 'DESC' },
+    });
+  }
+
+  async toggleHighlight(
+    userId: string,
+    data: {
+      bookId: string;
+      chapter: number;
+      verseNumber: number;
+      verseText: string;
+      version?: string;
+      colorHex?: string;
+    },
+  ): Promise<{ highlighted: boolean; highlight?: UserHighlight }> {
+    if (!this.highlightRepo) return { highlighted: false };
+
+    const existing = await this.highlightRepo.findOne({
+      where: {
+        userId,
+        bookId: data.bookId.toLowerCase(),
+        chapter: data.chapter,
+        verseNumber: data.verseNumber,
+      },
+    });
+
+    if (existing) {
+      // If user selected a different color, update the existing highlight
+      if (
+        data.colorHex &&
+        data.colorHex.toUpperCase() !== existing.colorHex.toUpperCase()
+      ) {
+        existing.colorHex = data.colorHex;
+        if (data.verseText) existing.verseText = data.verseText;
+        if (data.version) existing.version = data.version;
+        const updated = await this.highlightRepo.save(existing);
+        return { highlighted: true, highlight: updated };
+      }
+
+      // If same color or explicitly removed, delete it
+      await this.highlightRepo.delete(existing.id);
+      return { highlighted: false };
+    }
+
+    const highlight = this.highlightRepo.create({
+      userId,
+      bookId: data.bookId.toLowerCase(),
+      chapter: data.chapter,
+      verseNumber: data.verseNumber,
+      verseText: data.verseText || '',
+      version: data.version || 'RVR1960',
+      colorHex: data.colorHex || '#F7EBD2',
+    });
+    const saved = await this.highlightRepo.save(highlight);
+    return { highlighted: true, highlight: saved };
+  }
 
   getVersions(): BibleVersion[] {
     return BIBLE_VERSIONS;

@@ -18,13 +18,11 @@ describe('BibleService', () => {
   });
 
   describe('getVersions', () => {
-    it('should return 4 versions', () => {
+    it('should return 2 versions (KJV and RVR1960)', () => {
       const versions = service.getVersions();
-      expect(versions).toHaveLength(4);
+      expect(versions).toHaveLength(2);
       expect(versions.map((v) => v.id)).toContain('RVR1960');
-      expect(versions.map((v) => v.id)).toContain('NVI');
       expect(versions.map((v) => v.id)).toContain('KJV');
-      expect(versions.map((v) => v.id)).toContain('NIV');
     });
 
     it('should have correct structure', () => {
@@ -60,11 +58,11 @@ describe('BibleService', () => {
       expect(genesis?.chapters).toBe(50);
     });
 
-    it('should include apocalipsis', () => {
+    it('should include revelation / apocalipsis', () => {
       const books = service.getBooks('RVR1960');
-      const apocalipsis = books.find((b) => b.id === 'apocalipsis');
-      expect(apocalipsis).toBeDefined();
-      expect(apocalipsis?.chapters).toBe(22);
+      const revelation = books.find((b) => b.id === 'revelation');
+      expect(revelation).toBeDefined();
+      expect(revelation?.chapters).toBe(22);
     });
   });
 

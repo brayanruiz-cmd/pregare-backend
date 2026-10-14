@@ -1,12 +1,17 @@
 import {
   Controller,
   Get,
+  Post,
+  Body,
+  Req,
   Param,
   Query,
   HttpException,
   HttpStatus,
+  UseGuards,
 } from '@nestjs/common';
 import { BibleService } from './bible.service';
+import { OptionalJwtAuthGuard } from '../auth/presentation/optional-jwt-auth.guard';
 import type { BibleVersion, BibleBook, BibleChapter } from './bible.service';
 
 @Controller('bible')
@@ -21,6 +26,41 @@ export class BibleController {
   @Get('books')
   getBooks(@Query('version') version: string = 'RVR1960') {
     return this.bibleService.getBooks(version);
+  }
+
+  @UseGuards(OptionalJwtAuthGuard)
+  @Get('highlights')
+  getHighlights(@Req() req: any, @Query('userId') queryUserId?: string) {
+    const userId = req.user?.id || queryUserId || req.headers['x-user-id'];
+    if (!userId || userId === 'default') {
+      return [];
+    }
+    return this.bibleService.getHighlights(userId);
+  }
+
+  @UseGuards(OptionalJwtAuthGuard)
+  @Post('highlights/toggle')
+  toggleHighlight(
+    @Req() req: any,
+    @Body()
+    dto: {
+      bookId: string;
+      chapter: number;
+      verseNumber: number;
+      verseText: string;
+      version?: string;
+      colorHex?: string;
+      userId?: string;
+    },
+  ) {
+    const userId = req.user?.id || dto.userId || req.headers['x-user-id'];
+    if (!userId || userId === 'default') {
+      throw new HttpException(
+        'Authentication required to save highlights',
+        HttpStatus.UNAUTHORIZED,
+      );
+    }
+    return this.bibleService.toggleHighlight(userId, dto);
   }
 
   @Get('read/:book/:chapter')
@@ -41,3 +81,4 @@ export class BibleController {
     }
   }
 }
+

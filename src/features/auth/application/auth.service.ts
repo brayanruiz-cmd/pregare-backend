@@ -140,12 +140,16 @@ export class AuthService {
     return this.generateTokens(user!);
   }
 
-  async logout(refreshToken: string) {
-    const tokenHash = crypto
-      .createHash('sha256')
-      .update(refreshToken)
-      .digest('hex');
-    await this.refreshRepo.delete({ tokenHash });
+  async logout(refreshToken?: string) {
+    if (refreshToken) {
+      try {
+        const tokenHash = crypto
+          .createHash('sha256')
+          .update(refreshToken)
+          .digest('hex');
+        await this.refreshRepo.delete({ tokenHash });
+      } catch (_) {}
+    }
   }
 
   async updateGender(userId: string, gender: 'mujeres' | 'hombres') {
