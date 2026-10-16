@@ -262,6 +262,54 @@ export class StreaksService {
     };
   }
 
+  async proclaimDeclaration(
+    userId: string,
+    declarationId: string,
+  ): Promise<{
+    success: boolean;
+    streak: StreakResponse;
+  }> {
+    let existing = await this.savedDeclRepo.findOne({
+      where: { userId, declarationId },
+    });
+    if (!existing) {
+      existing = this.savedDeclRepo.create({
+        userId,
+        declarationId,
+      });
+      await this.savedDeclRepo.save(existing);
+    }
+
+    // Update streak activity and daily check-in
+    await this.checkIn(userId);
+
+    let streakEntity = await this.streakRepo.findOne({ where: { userId } });
+    if (streakEntity) {
+      streakEntity.declarationsSpokenCount =
+        (streakEntity.declarationsSpokenCount || 0) + 1;
+      await this.streakRepo.save(streakEntity);
+    }
+
+    const updatedStreak = await this.getStreak(userId);
+    return {
+      success: true,
+      streak: updatedStreak,
+    };
+  }
+
+  async getProclaimedDeclarationIds(userId: string): Promise<string[]> {
+    if (!userId || userId === 'default') return [];
+    try {
+      const records = await this.savedDeclRepo.find({
+        where: { userId },
+        select: { declarationId: true },
+      });
+      return records.map((r) => r.declarationId);
+    } catch {
+      return [];
+    }
+  }
+
   async getCompletedDevotionalIds(userId: string): Promise<string[]> {
     if (!userId || userId === 'default') return [];
     try {

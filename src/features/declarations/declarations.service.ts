@@ -11,6 +11,7 @@ export interface DeclarationResponse {
   text: string;
   reference: string;
   verse: string;
+  dayNumber?: number;
 }
 
 const TOPIC_LABELS: Record<string, string> = {
@@ -50,6 +51,93 @@ export class DeclarationsService {
 
   getTopics(): Record<string, string> {
     return TOPIC_LABELS;
+  }
+
+  getDayOfYear(date: Date = new Date()): number {
+    const start = new Date(date.getFullYear(), 0, 0);
+    const diff = date.getTime() - start.getTime();
+    const oneDay = 1000 * 60 * 60 * 24;
+    const day = Math.floor(diff / oneDay);
+    return Math.min(365, Math.max(1, day));
+  }
+
+  async getTodayDeclaration(
+    gender?: string,
+    targetDay?: number,
+  ): Promise<DeclarationResponse> {
+    const day = targetDay || this.getDayOfYear();
+    const normalizedGender =
+      gender &&
+      (gender.toLowerCase() === 'mujer' ||
+        gender.toLowerCase() === 'mujeres' ||
+        gender.toLowerCase() === 'women' ||
+        gender.toLowerCase() === 'female')
+        ? 'mujeres'
+        : gender &&
+            (gender.toLowerCase() === 'hombre' ||
+              gender.toLowerCase() === 'hombres' ||
+              gender.toLowerCase() === 'men' ||
+              gender.toLowerCase() === 'male')
+          ? 'hombres'
+          : 'mujeres';
+
+    // 1. Try finding by dayNumber and gender
+    let item = await this.declarationRepo
+      .createQueryBuilder('dec')
+      .leftJoinAndSelect('dec.topics', 'dt')
+      .where('dec.dayNumber = :day', { day })
+      .andWhere('(dec.gender = :g OR dec.gender = :all)', {
+        g: normalizedGender,
+        all: 'todos',
+      })
+      .getOne();
+
+    // 2. If not found by exact dayNumber, fallback to any matching gender
+    if (!item) {
+      item = await this.declarationRepo
+        .createQueryBuilder('dec')
+        .leftJoinAndSelect('dec.topics', 'dt')
+        .where('(dec.gender = :g OR dec.gender = :all)', {
+          g: normalizedGender,
+          all: 'todos',
+        })
+        .orderBy('dec.createdAt', 'ASC')
+        .getOne();
+    }
+
+    // 3. Fallback to any declaration in DB
+    if (!item) {
+      item = await this.declarationRepo
+        .createQueryBuilder('dec')
+        .leftJoinAndSelect('dec.topics', 'dt')
+        .getOne();
+    }
+
+    if (!item) {
+      return {
+        id: 'default',
+        gender: normalizedGender,
+        topics: ['faith'],
+        text: 'The Lord is my light and my salvation; whom shall I fear?',
+        reference: 'Psalm 27:1',
+        verse:
+          'The Lord is my light and my salvation—whom shall I fear? The Lord is the stronghold of my life—of whom shall I be afraid?',
+        dayNumber: day,
+      };
+    }
+
+    return {
+      id: item.id,
+      gender: item.gender,
+      topics:
+        item.topics && item.topics.length > 0
+          ? item.topics.map((t) => t.topicSlug)
+          : [item.topic],
+      text: item.declarationText,
+      reference: item.scriptureReference,
+      verse: item.scriptureText,
+      dayNumber: item.dayNumber || day,
+    };
   }
 
   async getDailyDeclarations(

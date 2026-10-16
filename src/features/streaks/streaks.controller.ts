@@ -89,4 +89,30 @@ export class StreaksController {
     }
     return this.streaksService.completeDevotional(userId, devotionalId);
   }
+
+  @UseGuards(OptionalJwtAuthGuard)
+  @Get('declarations/proclaimed')
+  async getProclaimedDeclarations(
+    @Req() req: any,
+    @Query('userId') queryUserId?: string,
+  ) {
+    const userId = this.extractUserId(req, queryUserId);
+    return this.streaksService.getProclaimedDeclarationIds(userId);
+  }
+
+  @UseGuards(OptionalJwtAuthGuard)
+  @Post('declarations/:id/proclaim')
+  async proclaimDeclaration(
+    @Req() req: any,
+    @Param('id') declarationId: string,
+    @Body('userId') bodyUserId?: string,
+  ) {
+    const userId = this.extractUserId(req, bodyUserId);
+    if (userId === 'default') {
+      throw new UnauthorizedException(
+        'Please sign in to record your proclaimed declaration and maintain your streak',
+      );
+    }
+    return this.streaksService.proclaimDeclaration(userId, declarationId);
+  }
 }

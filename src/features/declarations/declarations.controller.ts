@@ -5,6 +5,15 @@ import { DeclarationsService } from './declarations.service';
 export class DeclarationsController {
   constructor(private readonly declarationsService: DeclarationsService) {}
 
+  @Get('today')
+  getToday(
+    @Query('gender') gender?: string,
+    @Query('day') day?: string,
+  ) {
+    const dayNum = day ? parseInt(day, 10) : undefined;
+    return this.declarationsService.getTodayDeclaration(gender, dayNum);
+  }
+
   @Get('daily')
   getDaily(
     @Query('gender') gender?: string,

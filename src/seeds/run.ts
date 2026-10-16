@@ -93,62 +93,48 @@ async function runSeeds() {
     console.log('Guest user initialized.');
   }
 
-  // 1. Seed Declarations
+  // 1. Seed Declarations (365 for hombres, 365 for mujeres)
   console.log('Syncing declarations...');
-  for (const d of declarationsSeed.mujeres) {
-    let existing = await declRepo.findOne({
-      where: { scriptureReference: d.reference, gender: 'mujeres' },
-    });
-    if (!existing) {
-      existing = declRepo.create({
-        scriptureText: d.verse,
-        scriptureReference: d.reference,
-        declarationText: d.text,
-        topic: d.topics[0] || 'fe',
-        gender: 'mujeres',
-      });
-      existing = await declRepo.save(existing);
-    }
-    for (const t of d.topics) {
-      const topicExists = await declTopicRepo.findOne({
-        where: { declarationId: existing.id, topicSlug: t },
-      });
-      if (!topicExists) {
-        await declTopicRepo.save(
-          declTopicRepo.create({
-            declarationId: existing.id,
-            topicSlug: t,
-          }),
-        );
-      }
-    }
-  }
+  const decl365Path = path.join(__dirname, 'declarations-365.json');
+  if (fs.existsSync(decl365Path)) {
+    const raw = fs.readFileSync(decl365Path, 'utf-8');
+    const data = JSON.parse(raw);
+    const allItems: any[] = [...(data.hombres || []), ...(data.mujeres || [])];
 
-  for (const d of declarationsSeed.hombres) {
-    let existing = await declRepo.findOne({
-      where: { scriptureReference: d.reference, gender: 'hombres' },
-    });
-    if (!existing) {
-      existing = declRepo.create({
-        scriptureText: d.verse,
-        scriptureReference: d.reference,
-        declarationText: d.text,
-        topic: d.topics[0] || 'fe',
-        gender: 'hombres',
+    for (const d of allItems) {
+      let existing = await declRepo.findOne({
+        where: { dayNumber: d.dayNumber, gender: d.gender },
       });
-      existing = await declRepo.save(existing);
-    }
-    for (const t of d.topics) {
-      const topicExists = await declTopicRepo.findOne({
-        where: { declarationId: existing.id, topicSlug: t },
-      });
-      if (!topicExists) {
-        await declTopicRepo.save(
-          declTopicRepo.create({
-            declarationId: existing.id,
-            topicSlug: t,
-          }),
-        );
+      if (!existing) {
+        existing = declRepo.create({
+          dayNumber: d.dayNumber,
+          gender: d.gender,
+          scriptureText: d.verse,
+          scriptureReference: d.reference,
+          declarationText: d.text,
+          topic: d.topic || (d.topics && d.topics[0]) || 'fe',
+        });
+        existing = await declRepo.save(existing);
+      } else {
+        existing.scriptureText = d.verse;
+        existing.scriptureReference = d.reference;
+        existing.declarationText = d.text;
+        existing.topic = d.topic || (d.topics && d.topics[0]) || 'fe';
+        await declRepo.save(existing);
+      }
+
+      for (const t of (d.topics || [d.topic])) {
+        const topicExists = await declTopicRepo.findOne({
+          where: { declarationId: existing.id, topicSlug: t },
+        });
+        if (!topicExists) {
+          await declTopicRepo.save(
+            declTopicRepo.create({
+              declarationId: existing.id,
+              topicSlug: t,
+            }),
+          );
+        }
       }
     }
   }

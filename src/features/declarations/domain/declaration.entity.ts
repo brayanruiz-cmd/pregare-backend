@@ -31,6 +31,9 @@ export class Declaration {
   })
   gender: 'mujeres' | 'hombres' | 'todos';
 
+  @Column({ name: 'day_number', type: 'int', nullable: true })
+  dayNumber?: number;
+
   @CreateDateColumn({ name: 'created_at' })
   createdAt: Date;
 
