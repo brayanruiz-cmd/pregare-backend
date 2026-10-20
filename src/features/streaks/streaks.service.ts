@@ -65,6 +65,21 @@ export class StreaksService {
   ) {}
 
   async getStreak(userId: string): Promise<StreakResponse> {
+    if (!userId || userId === 'default') {
+      return {
+        userId: 'default',
+        currentStreak: 0,
+        longestStreak: 0,
+        lastCheckInDate: null,
+        totalDaysActive: 0,
+        declarationsSpoken: 0,
+        chaptersRead: 0,
+        savedDeclarationsCount: 0,
+        highlightsCount: 0,
+        completedDevotionalsCount: 0,
+      };
+    }
+
     let streak = await this.streakRepo.findOne({ where: { userId } });
 
     if (!streak) {
@@ -324,6 +339,9 @@ export class StreaksService {
   }
 
   async getBadges(userId: string): Promise<BadgeDto[]> {
+    if (!userId || userId === 'default') {
+      return [];
+    }
     const streak = await this.getStreak(userId);
     let userBadges: UserBadge[] = [];
     try {
