@@ -4,6 +4,7 @@ import { Repository } from 'typeorm';
 import { Declaration } from '../declarations/domain/declaration.entity';
 import { Devotional } from '../devotionals/domain/devotional.entity';
 import { UserCompletedDevotional } from '../streaks/domain/user-completed-devotional.entity';
+import { BibleService } from '../bible/bible.service';
 
 @Injectable()
 export class HomeService {
@@ -14,6 +15,7 @@ export class HomeService {
     private readonly devotionalRepo: Repository<Devotional>,
     @InjectRepository(UserCompletedDevotional)
     private readonly compDevRepo: Repository<UserCompletedDevotional>,
+    private readonly bibleService: BibleService,
   ) {}
 
   async getDailyVerse() {
@@ -31,11 +33,42 @@ export class HomeService {
     if (devotionals && devotionals.length > 0) {
       const index = dayOfYear % devotionals.length;
       const dev = devotionals[index];
+
+      let verseText = dev.verseText || '';
+      let bookId: string | undefined;
+      let bookName: string | undefined;
+      let chapter: number | undefined;
+      let verseNumber: number | undefined;
+
+      if (dev.verseReference) {
+        try {
+          const kjvVerse = await this.bibleService.getVerseByReference(
+            dev.verseReference,
+            'KJV',
+          );
+          if (kjvVerse) {
+            verseText = kjvVerse.text;
+            bookId = kjvVerse.bookId;
+            bookName = kjvVerse.bookName;
+            chapter = kjvVerse.chapter;
+            verseNumber = kjvVerse.verseNumber;
+          }
+        } catch {}
+      }
+
+      if (verseText) {
+        verseText = verseText.replace(/^["'“”«»]+|["'“”«»]+$/g, '').trim();
+      }
+
       return {
         verse: {
-          text: dev.verseText,
+          text: verseText,
           reference: dev.verseReference,
-          version: 'NIV',
+          version: 'KJV',
+          bookId,
+          bookName,
+          chapter,
+          verseNumber,
           devotionalId: dev.id,
           devotionalDay: dev.dayNumber,
           devotionalTitle: dev.title,
@@ -51,11 +84,37 @@ export class HomeService {
     if (declarations && declarations.length > 0) {
       const index = dayOfYear % declarations.length;
       const dec = declarations[index];
+      let verseText = dec.scriptureText || '';
+      let bookId: string | undefined;
+      let bookName: string | undefined;
+      let chapter: number | undefined;
+      let verseNumber: number | undefined;
+
+      if (dec.scriptureReference) {
+        try {
+          const kjvVerse = await this.bibleService.getVerseByReference(
+            dec.scriptureReference,
+            'KJV',
+          );
+          if (kjvVerse) {
+            verseText = kjvVerse.text;
+            bookId = kjvVerse.bookId;
+            bookName = kjvVerse.bookName;
+            chapter = kjvVerse.chapter;
+            verseNumber = kjvVerse.verseNumber;
+          }
+        } catch {}
+      }
+
       return {
         verse: {
-          text: dec.scriptureText,
+          text: verseText.replace(/^["'“”«»]+|["'“”«»]+$/g, '').trim(),
           reference: dec.scriptureReference,
-          version: 'NIV',
+          version: 'KJV',
+          bookId,
+          bookName,
+          chapter,
+          verseNumber,
         },
         isFavorited: false,
       };
@@ -64,9 +123,13 @@ export class HomeService {
     // Safe fallback
     return {
       verse: {
-        text: '"The Lord is my shepherd; I shall not want."',
+        text: 'The Lord is my shepherd; I shall not want.',
         reference: 'Psalm 23:1',
-        version: 'NIV',
+        version: 'KJV',
+        bookId: 'psalms',
+        bookName: 'Psalms',
+        chapter: 23,
+        verseNumber: 1,
       },
       isFavorited: false,
     };

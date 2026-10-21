@@ -3,6 +3,8 @@ import { ConfigService } from '@nestjs/config';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { UserHighlight } from '../streaks/domain/user-highlight.entity';
+import { VerseCollection } from './domain/verse-collection.entity';
+import { VerseCollectionItem } from './domain/verse-collection-item.entity';
 
 export interface BibleVersion {
   id: string;
@@ -211,6 +213,12 @@ export class BibleService {
     @Optional()
     @InjectRepository(UserHighlight)
     private readonly highlightRepo?: Repository<UserHighlight>,
+    @Optional()
+    @InjectRepository(VerseCollection)
+    private readonly collectionRepo?: Repository<VerseCollection>,
+    @Optional()
+    @InjectRepository(VerseCollectionItem)
+    private readonly collectionItemRepo?: Repository<VerseCollectionItem>,
   ) {}
 
   async getHighlights(userId: string): Promise<UserHighlight[]> {
@@ -272,6 +280,154 @@ export class BibleService {
     });
     const saved = await this.highlightRepo.save(highlight);
     return { highlighted: true, highlight: saved };
+  }
+
+  // ── Verse Collections ──────────────────────────────────────────────────
+  async getCollections(userId: string): Promise<any[]> {
+    if (!this.collectionRepo) return [];
+    const collections = await this.collectionRepo.find({
+      where: { userId },
+      relations: { items: true },
+      order: { updatedAt: 'DESC' },
+    });
+
+    return collections.map((col) => ({
+      id: col.id,
+      userId: col.userId,
+      title: col.title,
+      description: col.description,
+      colorHex: col.colorHex,
+      isPrivate: col.isPrivate,
+      createdAt: col.createdAt,
+      updatedAt: col.updatedAt,
+      itemsCount: col.items?.length || 0,
+      previewVerses: (col.items || []).slice(0, 3).map((item) => ({
+        id: item.id,
+        bookId: item.bookId,
+        bookName: item.bookName,
+        chapter: item.chapter,
+        verseNumber: item.verseNumber,
+        verseText: item.verseText,
+        colorHex: item.colorHex,
+      })),
+    }));
+  }
+
+  async createCollection(
+    userId: string,
+    data: { title: string; description?: string; colorHex?: string },
+  ): Promise<VerseCollection> {
+    if (!this.collectionRepo) {
+      throw new Error('Database not initialized');
+    }
+    const collection = this.collectionRepo.create({
+      userId,
+      title: data.title.trim(),
+      description: data.description?.trim(),
+      colorHex: data.colorHex || '#B58D3D',
+      isPrivate: true,
+    });
+    return this.collectionRepo.save(collection);
+  }
+
+  async getCollection(
+    userId: string,
+    collectionId: string,
+  ): Promise<VerseCollection | null> {
+    if (!this.collectionRepo) return null;
+    return this.collectionRepo.findOne({
+      where: { id: collectionId, userId },
+      relations: { items: true },
+      order: {
+        items: {
+          createdAt: 'DESC',
+        },
+      },
+    });
+  }
+
+  async deleteCollection(userId: string, collectionId: string): Promise<boolean> {
+    if (!this.collectionRepo) return false;
+    const res = await this.collectionRepo.delete({ id: collectionId, userId });
+    return (res.affected || 0) > 0;
+  }
+
+  async getVerseCollectionIds(
+    userId: string,
+    bookId: string,
+    chapter: number,
+    verseNumber: number,
+  ): Promise<string[]> {
+    if (!this.collectionItemRepo) return [];
+    const items = await this.collectionItemRepo.find({
+      where: {
+        userId,
+        bookId: bookId.toLowerCase(),
+        chapter,
+        verseNumber,
+      },
+      select: { collectionId: true },
+    });
+    return items.map((i) => i.collectionId);
+  }
+
+  async toggleVerseInCollection(
+    userId: string,
+    collectionId: string,
+    data: {
+      bookId: string;
+      bookName?: string;
+      chapter: number;
+      verseNumber: number;
+      verseText: string;
+      version?: string;
+      colorHex?: string;
+    },
+  ): Promise<{ inCollection: boolean; item?: VerseCollectionItem }> {
+    if (!this.collectionRepo || !this.collectionItemRepo) {
+      throw new Error('Database not initialized');
+    }
+
+    const collection = await this.collectionRepo.findOne({
+      where: { id: collectionId, userId },
+    });
+    if (!collection) {
+      throw new Error('Colección no encontrada');
+    }
+
+    const existing = await this.collectionItemRepo.findOne({
+      where: {
+        collectionId,
+        userId,
+        bookId: data.bookId.toLowerCase(),
+        chapter: data.chapter,
+        verseNumber: data.verseNumber,
+      },
+    });
+
+    if (existing) {
+      await this.collectionItemRepo.delete(existing.id);
+      collection.updatedAt = new Date();
+      await this.collectionRepo.save(collection);
+      return { inCollection: false };
+    }
+
+    const newItem = this.collectionItemRepo.create({
+      collectionId,
+      userId,
+      bookId: data.bookId.toLowerCase(),
+      bookName: data.bookName || data.bookId,
+      chapter: data.chapter,
+      verseNumber: data.verseNumber,
+      verseText: data.verseText || '',
+      version: data.version || 'RVR1960',
+      colorHex: data.colorHex || '#F7EBD2',
+    });
+
+    const saved = await this.collectionItemRepo.save(newItem);
+    collection.updatedAt = new Date();
+    await this.collectionRepo.save(collection);
+    return { inCollection: true, item: saved };
   }
 
   getVersions(): BibleVersion[] {
@@ -366,5 +522,56 @@ export class BibleService {
       this.logger.error(`Error fetching from Bolls API: ${error.message}`);
       throw new Error(`Failed to fetch chapter from Bible API: ${error.message}`);
     }
+  }
+
+  async getVerseByReference(
+    reference: string,
+    version: string = 'KJV',
+  ): Promise<{
+    text: string;
+    reference: string;
+    version: string;
+    bookId: string;
+    bookName: string;
+    chapter: number;
+    verseNumber: number;
+  } | null> {
+    if (!reference) return null;
+    const match = reference.trim().match(/^(.+?)\s+(\d+):(\d+)(?:-(\d+))?$/);
+    if (!match) return null;
+    const rawBook = match[1].trim();
+    const chapter = parseInt(match[2], 10);
+    const startVerse = parseInt(match[3], 10);
+    const endVerse = match[4] ? parseInt(match[4], 10) : startVerse;
+
+    const bookId = normalizeBookId(rawBook);
+    const bookData = BIBLE_BOOKS.find(
+      (b) => b.id === bookId || normalizeBookId(b.name) === bookId,
+    );
+    const bookName = bookData ? bookData.name : rawBook;
+
+    try {
+      const chapterData = await this.getChapter(bookId, chapter, version);
+      const matchingVerses = chapterData.verses.filter(
+        (v) => v.number >= startVerse && v.number <= endVerse,
+      );
+      if (matchingVerses.length > 0) {
+        return {
+          text: matchingVerses.map((v) => v.text).join(' '),
+          reference,
+          version,
+          bookId,
+          bookName,
+          chapter,
+          verseNumber: startVerse,
+        };
+      }
+    } catch (err: any) {
+      this.logger.warn(
+        `Could not fetch verse for ${reference} (${version}): ${err?.message || err}`,
+      );
+    }
+
+    return null;
   }
 }

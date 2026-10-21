@@ -7,6 +7,7 @@ import { UserSavedDeclaration } from './domain/user-saved-declaration.entity';
 import { UserCompletedDevotional } from './domain/user-completed-devotional.entity';
 import { UserHighlight } from './domain/user-highlight.entity';
 import { UserBadge } from './domain/user-badge.entity';
+import { Declaration } from '../declarations/domain/declaration.entity';
 
 export interface BadgeDto {
   code: string;
@@ -62,6 +63,8 @@ export class StreaksService {
     private readonly highlightRepo: Repository<UserHighlight>,
     @InjectRepository(UserBadge)
     private readonly badgeRepo: Repository<UserBadge>,
+    @InjectRepository(Declaration)
+    private readonly declRepo: Repository<Declaration>,
   ) {}
 
   async getStreak(userId: string): Promise<StreakResponse> {
@@ -280,17 +283,40 @@ export class StreaksService {
   async proclaimDeclaration(
     userId: string,
     declarationId: string,
+    gender?: string,
   ): Promise<{
     success: boolean;
     streak: StreakResponse;
   }> {
+    let resolvedId = declarationId;
+    if (declarationId && !declarationId.includes('-')) {
+      const day = parseInt(declarationId, 10);
+      if (!isNaN(day)) {
+        const query: any = { dayNumber: day };
+        if (gender) {
+          const normalized =
+            gender.toLowerCase().startsWith('h') || gender.toLowerCase().includes('men')
+              ? 'hombres'
+              : 'mujeres';
+          query.gender = normalized;
+        }
+        const found = await this.declRepo.findOne({ where: query });
+        if (found) {
+          resolvedId = found.id;
+        }
+      }
+    }
+
     let existing = await this.savedDeclRepo.findOne({
-      where: { userId, declarationId },
+      where: [
+        { userId, declarationId: resolvedId },
+        { userId, declarationId },
+      ],
     });
     if (!existing) {
       existing = this.savedDeclRepo.create({
         userId,
-        declarationId,
+        declarationId: resolvedId,
       });
       await this.savedDeclRepo.save(existing);
     }
@@ -319,7 +345,22 @@ export class StreaksService {
         where: { userId },
         select: { declarationId: true },
       });
-      return records.map((r) => r.declarationId);
+      const ids = new Set<string>();
+      for (const r of records) {
+        if (!r.declarationId) continue;
+        ids.add(r.declarationId);
+        if (r.declarationId.includes('-')) {
+          const found = await this.declRepo.findOne({
+            where: { id: r.declarationId },
+            select: { id: true, dayNumber: true, gender: true },
+          });
+          if (found?.dayNumber != null && found?.gender) {
+            ids.add(`${found.gender}_${found.dayNumber}`);
+            ids.add(`${found.gender}_day_${found.dayNumber}`);
+          }
+        }
+      }
+      return Array.from(ids);
     } catch {
       return [];
     }

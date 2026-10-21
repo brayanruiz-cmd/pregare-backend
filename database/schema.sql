@@ -198,6 +198,40 @@ CREATE TABLE user_highlights (
   FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
+CREATE TABLE verse_collections (
+  id VARCHAR(36) PRIMARY KEY,
+  user_id VARCHAR(36) NOT NULL,
+  title VARCHAR(100) NOT NULL,
+  description VARCHAR(255) NULL,
+  color_hex VARCHAR(10) DEFAULT '#B58D3D',
+  is_private BOOLEAN DEFAULT TRUE,
+  created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+  updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+
+  INDEX idx_verse_collections_user (user_id),
+  FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+CREATE TABLE verse_collection_items (
+  id VARCHAR(36) PRIMARY KEY,
+  collection_id VARCHAR(36) NOT NULL,
+  user_id VARCHAR(36) NOT NULL,
+  book_id VARCHAR(50) NOT NULL,
+  book_name VARCHAR(100) NOT NULL DEFAULT '',
+  chapter INT NOT NULL,
+  verse_number INT NOT NULL,
+  verse_text TEXT NOT NULL,
+  version VARCHAR(20) DEFAULT 'RVR1960',
+  color_hex VARCHAR(10) DEFAULT '#F7EBD2',
+  created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+
+  INDEX idx_collection_items_col (collection_id),
+  INDEX idx_collection_items_user (user_id),
+  INDEX idx_collection_items_verse (user_id, book_id, chapter, verse_number),
+  FOREIGN KEY (collection_id) REFERENCES verse_collections(id) ON DELETE CASCADE,
+  FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
 -- ----------------------------------------------------------------------------
 -- 6. Dominio: Gamificación (Rachas) & Notificaciones
 -- ----------------------------------------------------------------------------

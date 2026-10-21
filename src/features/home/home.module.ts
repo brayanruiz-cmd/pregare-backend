@@ -6,11 +6,13 @@ import { Declaration } from '../declarations/domain/declaration.entity';
 import { Devotional } from '../devotionals/domain/devotional.entity';
 import { UserCompletedDevotional } from '../streaks/domain/user-completed-devotional.entity';
 import { AuthModule } from '../auth/auth.module';
+import { BibleModule } from '../bible/bible.module';
 
 @Module({
   imports: [
     TypeOrmModule.forFeature([Declaration, Devotional, UserCompletedDevotional]),
     AuthModule,
+    BibleModule,
   ],
   controllers: [HomeController],
   providers: [HomeService],

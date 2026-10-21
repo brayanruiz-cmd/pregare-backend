@@ -106,6 +106,7 @@ export class StreaksController {
     @Req() req: any,
     @Param('id') declarationId: string,
     @Body('userId') bodyUserId?: string,
+    @Body('gender') bodyGender?: string,
   ) {
     const userId = this.extractUserId(req, bodyUserId);
     if (userId === 'default') {
@@ -113,6 +114,6 @@ export class StreaksController {
         'Please sign in to record your proclaimed declaration and maintain your streak',
       );
     }
-    return this.streaksService.proclaimDeclaration(userId, declarationId);
+    return this.streaksService.proclaimDeclaration(userId, declarationId, bodyGender);
   }
 }

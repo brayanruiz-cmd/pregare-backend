@@ -8,6 +8,7 @@ import { UserSavedDeclaration } from './domain/user-saved-declaration.entity';
 import { UserCompletedDevotional } from './domain/user-completed-devotional.entity';
 import { UserHighlight } from './domain/user-highlight.entity';
 import { UserBadge } from './domain/user-badge.entity';
+import { Declaration } from '../declarations/domain/declaration.entity';
 import { AuthModule } from '../auth/auth.module';
 
 @Module({
@@ -19,6 +20,7 @@ import { AuthModule } from '../auth/auth.module';
       UserCompletedDevotional,
       UserHighlight,
       UserBadge,
+      Declaration,
     ]),
     AuthModule,
   ],
