@@ -64,6 +64,35 @@ export class BibleController {
     return this.bibleService.toggleHighlight(userId, dto);
   }
 
+  @Get('stats/:bookId/:chapter')
+  getChapterStats(
+    @Param('bookId') bookId: string,
+    @Param('chapter') chapter: string,
+  ) {
+    return this.bibleService.getChapterHighlightStats(
+      bookId,
+      parseInt(chapter, 10),
+    );
+  }
+
+  @Get('stats/:bookId/:chapter/:verseNumber')
+  getVerseStats(
+    @Param('bookId') bookId: string,
+    @Param('chapter') chapter: string,
+    @Param('verseNumber') verseNumber: string,
+  ) {
+    return this.bibleService.getVersePopularity(
+      bookId,
+      parseInt(chapter, 10),
+      parseInt(verseNumber, 10),
+    );
+  }
+
+  @Post('stats/sync')
+  syncStats() {
+    return this.bibleService.syncExistingHighlightStats();
+  }
+
   // ── Verse Collections Endpoints ───────────────────────────────────────────
   @UseGuards(OptionalJwtAuthGuard)
   @Get('collections')

@@ -5,6 +5,7 @@ import { BibleController } from './bible.controller';
 import { UserHighlight } from '../streaks/domain/user-highlight.entity';
 import { VerseCollection } from './domain/verse-collection.entity';
 import { VerseCollectionItem } from './domain/verse-collection-item.entity';
+import { VerseHighlightStat } from './domain/verse-highlight-stat.entity';
 
 @Module({
   imports: [
@@ -12,6 +13,7 @@ import { VerseCollectionItem } from './domain/verse-collection-item.entity';
       UserHighlight,
       VerseCollection,
       VerseCollectionItem,
+      VerseHighlightStat,
     ]),
   ],
   controllers: [BibleController],

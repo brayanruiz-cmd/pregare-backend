@@ -5,6 +5,55 @@ import { Repository } from 'typeorm';
 import { UserHighlight } from '../streaks/domain/user-highlight.entity';
 import { VerseCollection } from './domain/verse-collection.entity';
 import { VerseCollectionItem } from './domain/verse-collection-item.entity';
+import { VerseHighlightStat } from './domain/verse-highlight-stat.entity';
+
+export interface VersePopularity {
+  count: number;
+  tier: number; // 0: normal, 1: relevante, 2: muy querido, 3: destacado universal
+  label: string;
+  isPopular: boolean;
+}
+
+export function computeVersePopularity(count: number): VersePopularity {
+  if (count <= 0) {
+    return {
+      count: 0,
+      tier: 0,
+      label: 'Sé de los primeros en resaltar este versículo',
+      isPopular: false,
+    };
+  }
+  if (count < 5) {
+    return {
+      count,
+      tier: 0,
+      label: `${count} ${count === 1 ? 'persona ha' : 'personas han'} subrayado esto`,
+      isPopular: false,
+    };
+  }
+  if (count < 20) {
+    return {
+      count,
+      tier: 1,
+      label: `✨ Subrayado por ${count} personas`,
+      isPopular: true,
+    };
+  }
+  if (count < 100) {
+    return {
+      count,
+      tier: 2,
+      label: `🔥 Versículo muy querido (${count} personas)`,
+      isPopular: true,
+    };
+  }
+  return {
+    count,
+    tier: 3,
+    label: `⭐ Versículo destacado en la comunidad (${count}+ personas)`,
+    isPopular: true,
+  };
+}
 
 export interface BibleVersion {
   id: string;
@@ -219,6 +268,9 @@ export class BibleService {
     @Optional()
     @InjectRepository(VerseCollectionItem)
     private readonly collectionItemRepo?: Repository<VerseCollectionItem>,
+    @Optional()
+    @InjectRepository(VerseHighlightStat)
+    private readonly statRepo?: Repository<VerseHighlightStat>,
   ) {}
 
   async getHighlights(userId: string): Promise<UserHighlight[]> {
@@ -239,13 +291,23 @@ export class BibleService {
       version?: string;
       colorHex?: string;
     },
-  ): Promise<{ highlighted: boolean; highlight?: UserHighlight }> {
-    if (!this.highlightRepo) return { highlighted: false };
+  ): Promise<{
+    highlighted: boolean;
+    highlight?: UserHighlight;
+    popularity: VersePopularity;
+  }> {
+    if (!this.highlightRepo) {
+      return {
+        highlighted: false,
+        popularity: computeVersePopularity(0),
+      };
+    }
 
+    const normalizedBookId = data.bookId.toLowerCase();
     const existing = await this.highlightRepo.findOne({
       where: {
         userId,
-        bookId: data.bookId.toLowerCase(),
+        bookId: normalizedBookId,
         chapter: data.chapter,
         verseNumber: data.verseNumber,
       },
@@ -261,17 +323,28 @@ export class BibleService {
         if (data.verseText) existing.verseText = data.verseText;
         if (data.version) existing.version = data.version;
         const updated = await this.highlightRepo.save(existing);
-        return { highlighted: true, highlight: updated };
+        const popularity = await this.getVersePopularity(
+          normalizedBookId,
+          data.chapter,
+          data.verseNumber,
+        );
+        return { highlighted: true, highlight: updated, popularity };
       }
 
       // If same color or explicitly removed, delete it
       await this.highlightRepo.delete(existing.id);
-      return { highlighted: false };
+      const popularity = await this.adjustHighlightCount(
+        normalizedBookId,
+        data.chapter,
+        data.verseNumber,
+        -1,
+      );
+      return { highlighted: false, popularity };
     }
 
     const highlight = this.highlightRepo.create({
       userId,
-      bookId: data.bookId.toLowerCase(),
+      bookId: normalizedBookId,
       chapter: data.chapter,
       verseNumber: data.verseNumber,
       verseText: data.verseText || '',
@@ -279,7 +352,117 @@ export class BibleService {
       colorHex: data.colorHex || '#F7EBD2',
     });
     const saved = await this.highlightRepo.save(highlight);
-    return { highlighted: true, highlight: saved };
+    const popularity = await this.adjustHighlightCount(
+      normalizedBookId,
+      data.chapter,
+      data.verseNumber,
+      1,
+    );
+    return { highlighted: true, highlight: saved, popularity };
+  }
+
+  async getChapterHighlightStats(
+    bookId: string,
+    chapter: number,
+  ): Promise<Record<number, VersePopularity>> {
+    if (!this.statRepo) return {};
+
+    const normalizedBookId = bookId.toLowerCase();
+    const stats = await this.statRepo.find({
+      where: {
+        bookId: normalizedBookId,
+        chapter,
+      },
+    });
+
+    const result: Record<number, VersePopularity> = {};
+    for (const s of stats) {
+      if (s.highlightCount > 0) {
+        result[s.verseNumber] = computeVersePopularity(s.highlightCount);
+      }
+    }
+    return result;
+  }
+
+  async getVersePopularity(
+    bookId: string,
+    chapter: number,
+    verseNumber: number,
+  ): Promise<VersePopularity> {
+    if (!this.statRepo) return computeVersePopularity(0);
+
+    const stat = await this.statRepo.findOne({
+      where: {
+        bookId: bookId.toLowerCase(),
+        chapter,
+        verseNumber,
+      },
+    });
+    return computeVersePopularity(stat?.highlightCount || 0);
+  }
+
+  private async adjustHighlightCount(
+    bookId: string,
+    chapter: number,
+    verseNumber: number,
+    delta: number,
+  ): Promise<VersePopularity> {
+    if (!this.statRepo) return computeVersePopularity(0);
+
+    const normalizedBookId = bookId.toLowerCase();
+    try {
+      let stat = await this.statRepo.findOne({
+        where: {
+          bookId: normalizedBookId,
+          chapter,
+          verseNumber,
+        },
+      });
+
+      if (!stat) {
+        stat = this.statRepo.create({
+          bookId: normalizedBookId,
+          chapter,
+          verseNumber,
+          highlightCount: Math.max(0, delta),
+        });
+      } else {
+        stat.highlightCount = Math.max(0, (stat.highlightCount || 0) + delta);
+      }
+
+      await this.statRepo.save(stat);
+      return computeVersePopularity(stat.highlightCount);
+    } catch (err) {
+      this.logger.warn(`Could not adjust highlight stat: ${err}`);
+      return computeVersePopularity(0);
+    }
+  }
+
+  async syncExistingHighlightStats(): Promise<{ processed: number }> {
+    if (!this.highlightRepo || !this.statRepo) return { processed: 0 };
+
+    const rawCounts = await this.highlightRepo
+      .createQueryBuilder('h')
+      .select('h.bookId', 'bookId')
+      .addSelect('h.chapter', 'chapter')
+      .addSelect('h.verseNumber', 'verseNumber')
+      .addSelect('COUNT(*)', 'cnt')
+      .groupBy('h.bookId')
+      .addGroupBy('h.chapter')
+      .addGroupBy('h.verseNumber')
+      .getRawMany();
+
+    for (const item of rawCounts) {
+      const count = parseInt(item.cnt, 10) || 0;
+      await this.statRepo.save({
+        bookId: item.bookId.toLowerCase(),
+        chapter: parseInt(item.chapter, 10),
+        verseNumber: parseInt(item.verseNumber, 10),
+        highlightCount: count,
+      });
+    }
+
+    return { processed: rawCounts.length };
   }
 
   // ── Verse Collections ──────────────────────────────────────────────────
