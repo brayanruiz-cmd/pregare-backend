@@ -288,40 +288,46 @@ export class StreaksService {
     success: boolean;
     streak: StreakResponse;
   }> {
+    const today = this.getToday();
     let resolvedId = declarationId;
+    let normalizedGender =
+      gender && (gender.toLowerCase().startsWith('h') || gender.toLowerCase().includes('men'))
+        ? 'hombres'
+        : 'mujeres';
+
     if (declarationId && !declarationId.includes('-')) {
       const day = parseInt(declarationId, 10);
       if (!isNaN(day)) {
-        const query: any = { dayNumber: day };
-        if (gender) {
-          const normalized =
-            gender.toLowerCase().startsWith('h') || gender.toLowerCase().includes('men')
-              ? 'hombres'
-              : 'mujeres';
-          query.gender = normalized;
-        }
-        const found = await this.declRepo.findOne({ where: query });
+        const found = await this.declRepo.findOne({
+          where: { dayNumber: day, gender: normalizedGender as any },
+        });
         if (found) {
           resolvedId = found.id;
+          normalizedGender = found.gender;
         }
       }
+    } else if (declarationId && declarationId.includes('-')) {
+      const found = await this.declRepo.findOne({
+        where: { id: declarationId },
+        select: { id: true, gender: true },
+      });
+      if (found?.gender) normalizedGender = found.gender;
     }
 
-    let existing = await this.savedDeclRepo.findOne({
-      where: [
-        { userId, declarationId: resolvedId },
-        { userId, declarationId },
-      ],
+    // Prevent duplicate for same declaration on same day
+    const existing = await this.savedDeclRepo.findOne({
+      where: { userId, declarationId: resolvedId, declaredDate: today },
     });
     if (!existing) {
-      existing = this.savedDeclRepo.create({
+      const record = this.savedDeclRepo.create({
         userId,
         declarationId: resolvedId,
+        gender: normalizedGender,
+        declaredDate: today,
       });
-      await this.savedDeclRepo.save(existing);
+      await this.savedDeclRepo.save(record);
     }
 
-    // Update streak activity and daily check-in
     await this.checkIn(userId);
 
     let streakEntity = await this.streakRepo.findOne({ where: { userId } });
@@ -340,10 +346,11 @@ export class StreaksService {
 
   async getProclaimedDeclarationIds(userId: string): Promise<string[]> {
     if (!userId || userId === 'default') return [];
+    const today = this.getToday();
     try {
       const records = await this.savedDeclRepo.find({
-        where: { userId },
-        select: { declarationId: true },
+        where: { userId, declaredDate: today },
+        select: { declarationId: true, declaredDate: true },
       });
       const ids = new Set<string>();
       for (const r of records) {
@@ -361,6 +368,24 @@ export class StreaksService {
         }
       }
       return Array.from(ids);
+    } catch {
+      return [];
+    }
+  }
+
+  async getTodayProclaimedGenders(userId: string): Promise<string[]> {
+    if (!userId || userId === 'default') return [];
+    const today = this.getToday();
+    try {
+      const records = await this.savedDeclRepo.find({
+        where: { userId, declaredDate: today },
+        select: { gender: true },
+      });
+      const genders = new Set<string>();
+      for (const r of records) {
+        if (r.gender) genders.add(r.gender);
+      }
+      return Array.from(genders);
     } catch {
       return [];
     }

@@ -101,6 +101,16 @@ export class StreaksController {
   }
 
   @UseGuards(OptionalJwtAuthGuard)
+  @Get('declarations/today-genders')
+  async getTodayProclaimedGenders(
+    @Req() req: any,
+    @Query('userId') queryUserId?: string,
+  ) {
+    const userId = this.extractUserId(req, queryUserId);
+    return this.streaksService.getTodayProclaimedGenders(userId);
+  }
+
+  @UseGuards(OptionalJwtAuthGuard)
   @Post('declarations/:id/proclaim')
   async proclaimDeclaration(
     @Req() req: any,

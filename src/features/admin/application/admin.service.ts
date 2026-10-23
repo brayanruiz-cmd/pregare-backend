@@ -43,6 +43,50 @@ export class AdminService {
     return match ? match[1] : null;
   }
 
+  private mapTopicToResponse(t: Topic) {
+    const tips = t.practices
+      ? [...t.practices]
+          .sort((a, b) => a.stepNumber - b.stepNumber)
+          .map((p) => p.instructionText)
+      : [];
+
+    return {
+      id: t.sortOrder || 1,
+      uuid: t.id,
+      tag: t.tag,
+      title: t.title,
+      subtitle: t.subtitle,
+      description: t.description,
+      scriptureQuote: t.scriptureQuote,
+      scriptureReference: t.scriptureReference,
+      supportTips: tips,
+      youtubeQuery: t.youtubeQuery,
+      youtubeUrl: t.youtubeUrl,
+      youtubeVideoId: t.youtubeVideoId,
+      videoDurationMinutes: t.videoDurationMinutes || 8,
+      createdAt: t.createdAt,
+    };
+  }
+
+  private mapDevotionalToResponse(d: Devotional) {
+    return {
+      id: d.dayNumber,
+      uuid: d.id,
+      day: d.dayNumber,
+      dayNumber: d.dayNumber,
+      title: d.title,
+      verse: d.verseReference ? `${d.verseText} (${d.verseReference})` : d.verseText,
+      verseText: d.verseText,
+      verseReference: d.verseReference,
+      text: d.reflectionText,
+      reflectionText: d.reflectionText,
+      prayer: d.prayerText,
+      prayerText: d.prayerText,
+      durationMinutes: d.durationMinutes || 2,
+      createdAt: d.createdAt,
+    };
+  }
+
   // --- STATS ---
   async getStats() {
     const [totalUsers, totalTopics, totalDevotionals] = await Promise.all([
@@ -60,10 +104,11 @@ export class AdminService {
 
   // --- TOPICS CRUD ---
   async getAllTopics() {
-    return this.topicRepo.find({
+    const topics = await this.topicRepo.find({
       relations: { practices: true },
       order: { sortOrder: 'ASC', createdAt: 'DESC' },
     });
+    return topics.map((t) => this.mapTopicToResponse(t));
   }
 
   async createTopic(dto: CreateTopicDto) {
@@ -101,14 +146,21 @@ export class AdminService {
       }
     }
 
-    return this.topicRepo.findOne({
+    const res = await this.topicRepo.findOne({
       where: { id: saved.id },
       relations: { practices: true },
     });
+    return res ? this.mapTopicToResponse(res) : null;
   }
 
   async updateTopic(id: string, dto: CreateTopicDto) {
-    const topic = await this.topicRepo.findOne({ where: { id } });
+    let topic = await this.topicRepo.findOne({ where: { id } });
+    if (!topic) {
+      const num = parseInt(id, 10);
+      if (!isNaN(num)) {
+        topic = await this.topicRepo.findOne({ where: { sortOrder: num } });
+      }
+    }
     if (!topic) throw new NotFoundException('Topic not found');
 
     const videoId = dto.youtubeUrl
@@ -131,13 +183,13 @@ export class AdminService {
     await this.topicRepo.save(topic);
 
     if (dto.supportTips) {
-      await this.practiceRepo.delete({ topicId: id });
+      await this.practiceRepo.delete({ topicId: topic.id });
       let step = 1;
       for (const tip of dto.supportTips) {
         if (tip.trim()) {
           await this.practiceRepo.save(
             this.practiceRepo.create({
-              topicId: id,
+              topicId: topic.id,
               stepNumber: step++,
               instructionText: tip.trim(),
             }),
@@ -146,23 +198,31 @@ export class AdminService {
       }
     }
 
-    return this.topicRepo.findOne({
-      where: { id },
+    const res = await this.topicRepo.findOne({
+      where: { id: topic.id },
       relations: { practices: true },
     });
+    return res ? this.mapTopicToResponse(res) : null;
   }
 
   async deleteTopic(id: string) {
-    const topic = await this.topicRepo.findOne({ where: { id } });
+    let topic = await this.topicRepo.findOne({ where: { id } });
+    if (!topic) {
+      const num = parseInt(id, 10);
+      if (!isNaN(num)) {
+        topic = await this.topicRepo.findOne({ where: { sortOrder: num } });
+      }
+    }
     if (!topic) throw new NotFoundException('Topic not found');
-    await this.practiceRepo.delete({ topicId: id });
-    await this.topicRepo.delete(id);
+    await this.practiceRepo.delete({ topicId: topic.id });
+    await this.topicRepo.delete(topic.id);
     return { success: true };
   }
 
   // --- DEVOTIONALS CRUD ---
   async getAllDevotionals() {
-    return this.devRepo.find({ order: { dayNumber: 'ASC' } });
+    const list = await this.devRepo.find({ order: { dayNumber: 'ASC' } });
+    return list.map((d) => this.mapDevotionalToResponse(d));
   }
 
   async createDevotional(dto: CreateDevotionalDto) {
@@ -175,7 +235,8 @@ export class AdminService {
       prayerText: dto.prayerText,
       durationMinutes: dto.durationMinutes || 2,
     });
-    return this.devRepo.save(dev);
+    const saved = await this.devRepo.save(dev);
+    return this.mapDevotionalToResponse(saved);
   }
 
   async updateDevotional(id: string, dto: CreateDevotionalDto) {
@@ -192,7 +253,8 @@ export class AdminService {
       durationMinutes: dto.durationMinutes || 2,
     });
 
-    return this.devRepo.save(dev);
+    const saved = await this.devRepo.save(dev);
+    return this.mapDevotionalToResponse(saved);
   }
 
   async deleteDevotional(id: string) {

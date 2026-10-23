@@ -6,7 +6,7 @@ export class TopicPractice {
   @PrimaryGeneratedColumn('uuid')
   id: string;
 
-  @Column({ name: 'topic_id' })
+  @Column({ name: 'topic_id', length: 36 })
   topicId: string;
 
   @Column({ name: 'step_number' })
